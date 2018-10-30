@@ -4,9 +4,7 @@
  */
 package com.linkedin.tony;
 
-import com.fasterxml.jackson.core.JsonGenerationException;
 import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.JsonMappingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.linkedin.tony.rpc.TaskUrl;
 import java.io.File;
@@ -264,7 +262,7 @@ public class Utils {
    */
   public static Map<String, TensorFlowContainerRequest> parseContainerRequests(Configuration conf) {
     Set<String> jobNames = conf.getValByRegex(TonyConfigurationKeys.INSTANCES_REGEX).keySet().stream()
-        .map(key -> getTaskType(key))
+        .map(Utils::getTaskType)
         .collect(Collectors.toSet());
     Map<String, TensorFlowContainerRequest> containerRequests = new HashMap<>();
     int priority = 0;
@@ -353,6 +351,22 @@ public class Utils {
       }
     } catch (IOException e) {
       LOG.error("Failed to clean up HDFS path: " + path, e);
+    }
+  }
+
+  /**
+   * Copy a list of resources delimited by comma from hdfs to local directory.
+   * @param resources a list of resources to be copied, delimited by comma.
+   * @param localDir local directory that these resources will be copied to.
+   * @param hdfsConf the configuration file for HDFS.
+   * @throws IOException exception thrown during file copies.
+   */
+  public static void localizeResources(String resources, String localDir, Configuration hdfsConf) throws IOException {
+    String[] resourceArray = resources.split(",");
+    for (String resource : resourceArray) {
+      Path re = new Path(resource);
+      FileSystem fs = FileSystem.get(hdfsConf);
+      fs.copyToLocalFile(re, new Path(localDir));
     }
   }
 }
